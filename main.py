@@ -472,14 +472,302 @@ def get_file_info(path: str) -> Dict[str, Any]:
         raise RuntimeError(f"Error getting file info: {str(e)}") from e
 
 
+# Configuration centralisée des templates
+TEMPLATE_CONFIGS = {
+        "présentation de l'entreprise": """
+STRUCTURE RECOMMANDÉE:
+1. Historique et évolution de l'entreprise
+2. Secteur d'activité et positionnement concurrentiel
+3. Organisation et structure hiérarchique
+4. Chiffres clés (effectifs, CA, implantations géographiques)
+5. Valeurs et culture d'entreprise
+
+POINTS CLÉS À DÉVELOPPER:
+- Contexte économique et enjeux du secteur
+- Innovation et stratégie de développement
+- Positionnement sur le marché
+- Relations avec les partenaires/clients principaux
+
+INFORMATIONS À COLLECTER:
+- Date de création, fondateurs, étapes clés
+- Domaines d'expertise et technologies maîtrisées
+- Organigramme et répartition des équipes
+- Projets phares et références clients
+""",
+        
+        "service d'accueil": """
+STRUCTURE RECOMMANDÉE:
+1. Position du service dans l'organigramme général
+2. Missions et responsabilités du service
+3. Composition de l'équipe et profils
+4. Interactions avec les autres services
+5. Enjeux spécifiques liés au stage
+
+POINTS CLÉS À DÉVELOPPER:
+- Rôle stratégique du service dans l'entreprise
+- Méthodologies de travail et processus
+- Technologies et outils utilisés
+- Défis actuels et projets en cours
+
+INFORMATIONS À COLLECTER:
+- Nom et fonction du maître de stage
+- Expertise technique de l'équipe
+- Budget et ressources allouées
+- Objectifs à court et moyen terme
+""",
+
+        "mission": """
+STRUCTURE RECOMMANDÉE:
+1. Problématique technique ou scientifique
+2. Contexte et enjeux pour l'entreprise
+3. Objectifs fixés et livrables attendus
+4. Périmètre et contraintes du projet
+5. Planning prévisionnel vs réalisé
+
+POINTS CLÉS À DÉVELOPPER:
+- Analyse du besoin initial
+- Complexité technique et défis identifiés
+- Ressources mises à disposition
+- Critères d'évaluation du succès
+
+INFORMATIONS À COLLECTER:
+- Cahier des charges détaillé
+- Acteurs impliqués dans le projet
+- Budget et délais impartis
+- Risques identifiés en amont
+""",
+
+        "état de l'art": """
+STRUCTURE RECOMMANDÉE:
+1. Technologies existantes sur le marché
+2. Solutions internes déjà en place
+3. Benchmarking des approches concurrentes
+4. Avantages/inconvénients de chaque solution
+5. Positionnement de l'approche choisie
+
+POINTS CLÉS À DÉVELOPPER:
+- Analyse comparative rigoureuse
+- Critères de sélection technique
+- Évolution technologique du domaine
+- Retour d'expérience d'autres projets
+
+INFORMATIONS À COLLECTER:
+- Documentation technique des solutions
+- Études de marché et rapports sectoriels  
+- Retours utilisateurs et cas d'usage
+- Coûts de mise en œuvre et maintenance
+""",
+
+        "méthodologie": """
+STRUCTURE RECOMMANDÉE:
+1. Approche méthodologique adoptée
+2. Phases du projet et jalons
+3. Outils et technologies sélectionnés
+4. Justification des choix techniques
+5. Métriques de suivi et validation
+
+POINTS CLÉS À DÉVELOPPER:
+- Adéquation méthode/problématique
+- Processus de prise de décision
+- Gestion des risques et plan B
+- Adaptations en cours de projet
+
+INFORMATIONS À COLLECTER:
+- Méthodologies standards du secteur
+- Contraintes techniques et organisationnelles
+- Formation reçue sur les outils
+- Retours d'expérience équipe
+""",
+
+        "difficultés": """
+STRUCTURE RECOMMANDÉE:
+1. Difficultés techniques rencontrées
+2. Problèmes organisationnels ou humains
+3. Contraintes temporelles ou budgétaires
+4. Solutions palliatives mises en place
+5. Leçons apprises pour l'avenir
+
+POINTS CLÉS À DÉVELOPPER:
+- Analyse des causes profondes
+- Impact sur le planning et les objectifs
+- Créativité dans les solutions trouvées
+- Capacité d'adaptation et de résilience
+
+INFORMATIONS À COLLECTER:
+- Chronologie des problèmes
+- Ressources mobilisées pour les résoudre
+- Aide reçue de l'équipe/hiérarchie
+- Amélioration des processus suite aux difficultés
+""",
+
+        "résultats": """
+STRUCTURE RECOMMANDÉE:
+1. Présentation des livrables finaux
+2. Métriques et indicateurs de performance
+3. Comparaison objectifs vs réalisations
+4. Validation par les parties prenantes
+5. Documentation et transfert de compétences
+
+POINTS CLÉS À DÉVELOPPER:
+- Démonstration concrète des résultats
+- Analyse quantitative et qualitative
+- Valeur ajoutée pour l'entreprise
+- Perspectives d'évolution du projet
+
+INFORMATIONS À COLLECTER:
+- Captures d'écran, prototypes, démos
+- Métriques avant/après implementation
+- Feedback des utilisateurs finaux
+- ROI estimé ou gains mesurables
+""",
+
+        "analyse critique": """
+STRUCTURE RECOMMANDÉE:
+1. Forces et faiblesses de la solution
+2. Comparaison avec l'état de l'art
+3. Limites identifiées et améliorations possibles
+4. Pertinence par rapport aux objectifs initiaux
+5. Recommandations pour la suite
+
+POINTS CLÉS À DÉVELOPPER:
+- Objectivité dans l'évaluation
+- Vision critique et constructive
+- Prise de recul sur les choix effectués
+- Maturité dans l'analyse technique
+
+INFORMATIONS À COLLECTER:
+- Tests de performance détaillés
+- Comparatifs avec solutions existantes
+- Feedback des experts du domaine
+- Évolutions technologiques à venir
+""",
+
+        "retombées": """
+STRUCTURE RECOMMANDÉE:
+1. Impact immédiat sur les processus
+2. Économies ou gains de productivité
+3. Amélioration de la performance technique
+4. Perspectives de déploiement élargi
+5. Contribution à la stratégie d'innovation
+
+POINTS CLÉS À DÉVELOPPER:
+- Quantification des bénéfices
+- Adoption par les équipes métier
+- Scalabilité de la solution
+- Positionnement concurrentiel renforcé
+
+INFORMATIONS À COLLECTER:
+- Métriques business avant/après
+- Retours des équipes utilisatrices
+- Plans de déploiement futurs
+- Valorisation potentielle de la propriété intellectuelle
+""",
+
+        "bilan personnel": """
+STRUCTURE RECOMMANDÉE:
+1. Compétences techniques acquises
+2. Développement des soft skills
+3. Compréhension du monde de l'entreprise
+4. Réseau professionnel constitué
+5. Impact sur le projet professionnel
+
+POINTS CLÉS À DÉVELOPPER:
+- Evolution personnelle mesurable
+- Confrontation théorie/pratique
+- Autonomie progressivement gagnée
+- Capacité de remise en question
+
+INFORMATIONS À COLLECTER:
+- Auto-évaluation des compétences
+- Retours du maître de stage
+- Moments marquants du stage
+- Liens avec le parcours de formation
+""",
+
+        "compétences acquises": """
+STRUCTURE RECOMMANDÉE:
+1. Compétences techniques spécialisées
+2. Maîtrise des outils professionnels
+3. Méthodologies de travail intégrées
+4. Compétences transversales développées
+5. Certification ou formation complémentaire
+
+POINTS CLÉS À DÉVELOPPER:
+- Concrétisation par des exemples précis
+- Niveau de maîtrise atteint
+- Transférabilité vers d'autres contextes
+- Valeur ajoutée sur le CV
+
+INFORMATIONS À COLLECTER:
+- Portfolio des réalisations techniques
+- Certifications obtenues pendant le stage
+- Formations suivies en parallèle
+- Feedback des collègues sur les progrès
+""",
+
+        "perspectives professionnelles": """
+STRUCTURE RECOMMANDÉE:
+1. Clarification du projet professionnel
+2. Secteurs d'activité d'intérêt
+3. Types de postes envisagés
+4. Compétences à développer davantage
+5. Suite de parcours (études, emploi)
+
+POINTS CLÉS À DÉVELOPPER:
+- Cohérence avec les aspirations initiales
+- Influence du stage sur les choix futurs
+- Réalisme des perspectives
+- Plan de développement personnel
+
+INFORMATIONS À COLLECTER:
+- Discussions avec le tuteur entreprise
+- Rencontres avec d'autres professionnels
+- Analyse du marché de l'emploi
+- Opportunités identifiées dans l'entreprise
+"""
+}
+
+# Template générique par défaut
+DEFAULT_TEMPLATE = """
+STRUCTURE GÉNÉRIQUE:
+1. Introduction du sujet
+2. Développement des points principaux
+3. Analyse et réflexion critique
+4. Conclusion et ouvertures
+
+POINTS CLÉS À DÉVELOPPER:
+- Contextualisation par rapport au stage
+- Exemples concrets et détaillés
+- Liens avec les objectifs du rapport
+- Perspective personnelle et professionnelle
+"""
+
+
+def _get_section_template(section: str) -> str:
+    """Retourne le template spécifique pour chaque section du rapport de stage"""
+    
+    # Normaliser le nom de la section pour la comparaison
+    section_norm = section.lower().strip()
+    
+    # Recherche par correspondance partielle
+    for key, template in TEMPLATE_CONFIGS.items():
+        if key in section_norm or any(word in section_norm for word in key.split()):
+            return template
+    
+    return DEFAULT_TEMPLATE
+
+
 @mcp.prompt()
 def generate_internship_report(section: str, content_details: str) -> str:
-    """Génère une section du rapport de stage avec directives intégrées
+    """Génère une section du rapport de stage avec template et directives intégrées
 
     Args:
         section: Section à générer (ex: "introduction", "contexte", "missions", etc.)
         content_details: Détails spécifiques à inclure dans cette section
     """
+    
+    # Obtenir le template spécifique à la section
+    section_template = _get_section_template(section)
 
     # Directives de rédaction intégrées directement dans le prompt
     directives = """DIRECTIVES DE RÉDACTION OBLIGATOIRES POUR RAPPORT DE STAGE:
@@ -513,10 +801,56 @@ QUALITÉ RÉDACTIONNELLE:
     return f"""{directives}
 
 ==================================================
+TEMPLATE SPÉCIFIQUE POUR: {section.upper()}
+{section_template}
+
+==================================================
 SECTION À GÉNÉRER: {section.upper()}
 DÉTAILS SPÉCIFIQUES: {content_details}
 
-En respectant scrupuleusement les directives ci-dessus, génère maintenant cette section du rapport de stage de manière professionnelle et structurée."""
+En respectant scrupuleusement les directives ci-dessus ET en suivant le template spécifique, génère maintenant cette section du rapport de stage de manière professionnelle et structurée."""
+
+
+@mcp.tool()
+def list_available_templates() -> List[str]:
+    """Liste tous les templates de sections disponibles pour le rapport de stage"""
+    # Récupérer les clés depuis _get_section_template pour éviter les doublons
+    templates = {
+        "présentation de l'entreprise": None,
+        "service d'accueil": None, 
+        "mission": None,
+        "état de l'art": None,
+        "méthodologie": None, 
+        "difficultés": None,
+        "résultats": None,
+        "analyse critique": None,
+        "retombées": None,
+        "bilan personnel": None,
+        "compétences acquises": None,
+        "perspectives professionnelles": None
+    }
+    
+    return list(templates.keys())
+
+
+@mcp.tool()  
+def get_section_template_preview(section: str) -> str:
+    """Affiche le template d'une section spécifique sans générer de contenu
+    
+    Args:
+        section: Nom de la section (ex: "mission", "résultats", etc.)
+    """
+    template = _get_section_template(section)
+    
+    return f"""📋 TEMPLATE POUR LA SECTION: {section.upper()}
+{'-' * 50}
+{template}
+{'-' * 50}
+
+💡 Pour utiliser ce template, appelez generate_internship_report() avec:
+- section: "{section}" 
+- content_details: [vos détails spécifiques]
+"""
 
 
 @mcp.tool()
@@ -537,59 +871,58 @@ def update_report_section(
     """
 
     try:
-        # Vérifier si le fichier existe
+        # Vérifier si le fichier existe et le lire
         file_path = Path(markdown_file).resolve()
-        current_content = ""
-
-        if file_path.exists():
-            with open(file_path, "r", encoding="utf-8") as f:
-                current_content = f.read()
-        elif not create_if_missing:
+        current_content = _read_file_safe(markdown_file)
+        
+        if not current_content and not create_if_missing:
             return f"ERREUR: Le fichier '{markdown_file}' n'existe pas."
 
-        # Chercher les différents formats de headers possibles
-        section_headers = [
-            f"# {section.title()}",
-            f"## {section.title()}",
-            f"### {section.title()}",
-            f"# {section.upper()}",
-            f"## {section.upper()}",
-            f"### {section.upper()}",
-            f"# {section.lower()}",
-            f"## {section.lower()}",
-            f"### {section.lower()}",
-        ]
+        # Helpers: normaliser un titre et retirer un éventuel header du nouveau contenu
+        def _normalize_title(s: str) -> str:
+            s_norm = s.strip().lower()
+            s_norm = re.sub(r"\s+", " ", s_norm)
+            # Retire une numérotation de début (ex: "2.", "2)", "II.") simple
+            s_norm = re.sub(r"^(\d+|[ivxlcdm]+)[\.)\-:]\s*", "", s_norm)
+            return s_norm
 
-        # Préparer le nouveau contenu avec header
-        section_header = f"## {section.title()}"
-        formatted_new_content = f"{section_header}\n\n{new_section_content.strip()}\n\n"
+        def _strip_leading_header(content: str) -> str:
+            lines = content.lstrip().splitlines()
+            if lines and re.match(r"^#{1,6}\s+", lines[0]):
+                return "\n".join(lines[1:]).lstrip()
+            return content.strip()
 
-        # Chercher si la section existe déjà
-        section_found = False
+        target_norm = _normalize_title(section)
         updated_content = current_content
 
-        for header in section_headers:
-            # Pattern pour capturer la section complète
-            pattern = rf"({re.escape(header)}.*?)(?=^#{1,3}\s|\Z)"
-            match = re.search(pattern, current_content, re.MULTILINE | re.DOTALL)
+        # Détecter tous les headers markdown et comparer les titres normalisés
+        header_iter = list(re.finditer(r"^(#{1,6})\s+(.+)$", current_content, re.MULTILINE))
+        section_found = False
 
-            if match:
-                # Remplacer la section existante
-                updated_content = re.sub(
-                    pattern,
-                    formatted_new_content.rstrip() + "\n\n",
-                    current_content,
-                    flags=re.MULTILINE | re.DOTALL,
-                )
+        for idx, m in enumerate(header_iter):
+            header_title = m.group(2).strip()
+            header_title_norm = _normalize_title(header_title)
+
+            if header_title_norm == target_norm:
+                # Déterminer la fin de la section (avant le prochain header)
+                start = m.start()
+                end = header_iter[idx + 1].start() if idx + 1 < len(header_iter) else len(current_content)
+
+                existing_header_line = current_content[start: current_content.find("\n", start) if current_content.find("\n", start) != -1 else end]
+                body_replacement = _strip_leading_header(new_section_content)
+
+                replacement = existing_header_line + "\n\n" + body_replacement.strip() + "\n\n"
+                updated_content = current_content[:start] + replacement + current_content[end:]
                 section_found = True
                 break
 
-        # Si la section n'existe pas, l'ajouter à la fin
+        # Si la section n'a pas été trouvée, on ajoute une nouvelle section en fin de fichier
         if not section_found:
+            section_header = f"## {section.title()}"
+            body_replacement = _strip_leading_header(new_section_content)
+            formatted_new_content = f"{section_header}\n\n{body_replacement}\n\n"
             if current_content and not current_content.endswith("\n\n"):
-                updated_content = (
-                    current_content.rstrip() + "\n\n" + formatted_new_content
-                )
+                updated_content = current_content.rstrip() + "\n\n" + formatted_new_content
             else:
                 updated_content = current_content + formatted_new_content
 
@@ -611,6 +944,18 @@ Le fichier a été mis à jour avec succès."""
         return f"Erreur lors de la modification du fichier: {str(e)}"
 
 
+def _read_file_safe(file_path: str) -> str:
+    """Lit un fichier de manière sécurisée avec gestion d'erreur"""
+    try:
+        path = Path(file_path).resolve()
+        if path.exists():
+            with open(path, "r", encoding="utf-8") as f:
+                return f.read()
+    except Exception:
+        pass
+    return ""
+
+
 @mcp.tool()
 def get_report_section_instructions(
     section: str, content_details: str, markdown_file: str
@@ -628,14 +973,7 @@ def get_report_section_instructions(
     prompt_instructions = generate_internship_report(section, content_details)
 
     # Lire le fichier actuel pour contexte
-    current_content = ""
-    try:
-        file_path = Path(markdown_file).resolve()
-        if file_path.exists():
-            with open(file_path, "r", encoding="utf-8") as f:
-                current_content = f.read()
-    except Exception:
-        pass
+    current_content = _read_file_safe(markdown_file)
 
     result = f"""📝 INSTRUCTIONS POUR RÉDACTION DE SECTION
 
@@ -654,3 +992,84 @@ CONTENU ACTUEL DU FICHIER:
 2. Utilisez ensuite l'outil 'update_report_section' avec le contenu rédigé"""
 
     return result
+
+
+@mcp.tool()
+def validate_report_structure(markdown_file: str) -> Dict[str, Any]:
+    """Valide la structure du rapport de stage et identifie les sections manquantes
+    
+    Args:
+        markdown_file: Chemin vers le fichier .md du rapport
+    """
+    try:
+        current_content = _read_file_safe(markdown_file)
+        
+        if not current_content:
+            return {
+                "status": "error",
+                "message": f"Fichier '{markdown_file}' vide ou inexistant",
+                "sections_found": [],
+                "sections_missing": list(TEMPLATE_CONFIGS.keys()),
+                "recommendations": ["Commencer par créer le fichier et ajouter des sections"]
+            }
+        
+        # Extraire tous les headers du document
+        headers = re.findall(r"^(#{1,6})\s+(.+)$", current_content, re.MULTILINE)
+        sections_found = []
+        
+        for level, title in headers:
+            title_norm = title.strip().lower()
+            title_norm = re.sub(r"^(\d+|[ivxlcdm]+)[\.)\-:]\s*", "", title_norm)
+            sections_found.append({
+                "level": len(level),
+                "title": title.strip(),
+                "normalized": title_norm
+            })
+        
+        # Identifier les sections du rapport présentes
+        template_keys = set(TEMPLATE_CONFIGS.keys())
+        found_keys = set()
+        
+        for section in sections_found:
+            for key in template_keys:
+                if key in section["normalized"] or any(word in section["normalized"] for word in key.split()):
+                    found_keys.add(key)
+                    break
+        
+        sections_missing = template_keys - found_keys
+        completion_rate = len(found_keys) / len(template_keys) * 100
+        
+        # Générer des recommandations
+        recommendations = []
+        if completion_rate < 50:
+            recommendations.append("Structure de base incomplète - ajouter les sections principales")
+        if "présentation de l'entreprise" not in found_keys:
+            recommendations.append("Ajouter la présentation de l'entreprise (section fondamentale)")
+        if "mission" not in found_keys:
+            recommendations.append("Décrire la mission principale du stage")
+        if "bilan personnel" not in found_keys:
+            recommendations.append("Inclure un bilan personnel et retour d'expérience")
+            
+        return {
+            "status": "success",
+            "completion_rate": round(completion_rate, 1),
+            "total_sections": len(sections_found),
+            "sections_found": [s["title"] for s in sections_found],
+            "template_sections_present": sorted(list(found_keys)),
+            "sections_missing": sorted(list(sections_missing)),
+            "recommendations": recommendations,
+            "file_stats": {
+                "word_count": len(current_content.split()),
+                "char_count": len(current_content),
+                "line_count": len(current_content.splitlines())
+            }
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error", 
+            "message": f"Erreur lors de la validation: {str(e)}",
+            "sections_found": [],
+            "sections_missing": [],
+            "recommendations": []
+        }

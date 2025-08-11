@@ -13,6 +13,14 @@ from pathlib import Path
 from typing import List, Dict, Any
 from dataclasses import dataclass
 from mcp.server.fastmcp import FastMCP
+import markdown
+from docx import Document
+from docx.shared import Inches, Pt, Cm
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_LINE_SPACING
+from docx.enum.style import WD_STYLE_TYPE
+from docx.enum.section import WD_SECTION
+from docx.oxml.shared import OxmlElement, qn
+from docx.oxml.ns import nsdecls
 
 mcp = FastMCP("FileSystem Agent")
 
@@ -1073,3 +1081,322 @@ def validate_report_structure(markdown_file: str) -> Dict[str, Any]:
             "sections_missing": [],
             "recommendations": []
         }
+
+
+@mcp.tool()
+def convert_markdown_to_docx(
+    markdown_file: str,
+    output_file: str = None,
+    title: str = "Rapport de Stage",
+    author: str = "",
+    font_name: str = "Times New Roman",
+    font_size: int = 12,
+    margin_cm: float = 2.5,
+    line_spacing: float = 1.5,
+    language: str = "en-US",
+    add_page_numbers: bool = True,
+    decimal_numbering: bool = True
+) -> Dict[str, Any]:
+    """Convertit un fichier Markdown en DOCX avec formatage académique professionnel
+    
+    Args:
+        markdown_file: Chemin vers le fichier .md source
+        output_file: Chemin de sortie .docx (optionnel, généré automatiquement si absent)
+        title: Titre du document (défaut: "Rapport de Stage")
+        author: Nom de l'auteur
+        font_name: Police à utiliser (défaut: Times New Roman - norme académique)
+        font_size: Taille de police en points (défaut: 12pt - norme académique)
+        margin_cm: Marges en centimètres (défaut: 2.5cm - norme académique)
+        line_spacing: Interligne (défaut: 1.5 - norme académique)
+        language: Langue du document (défaut: en-US)
+        add_page_numbers: Ajouter numérotation des pages (défaut: True)
+        decimal_numbering: Utiliser numérotation décimale pour les titres (défaut: True)
+    """
+    try:
+        # Lire le fichier markdown
+        markdown_content = _read_file_safe(markdown_file)
+        if not markdown_content:
+            return {
+                "status": "error",
+                "message": f"Impossible de lire le fichier '{markdown_file}'"
+            }
+        
+        # Déterminer le fichier de sortie
+        if not output_file:
+            md_path = Path(markdown_file)
+            output_file = str(md_path.with_suffix('.docx'))
+        
+        # Créer le document Word
+        doc = Document()
+        
+        # Configuration du document selon les normes académiques
+        _setup_academic_document(doc, font_name, font_size, margin_cm, line_spacing, language, add_page_numbers)
+        
+        # Parser le markdown et convertir avec numérotation
+        _convert_markdown_content(doc, markdown_content, font_name, font_size, line_spacing, decimal_numbering)
+        
+        # Ajouter métadonnées
+        if title:
+            doc.core_properties.title = title
+        if author:
+            doc.core_properties.author = author
+        
+        # Sauvegarder le document
+        doc.save(output_file)
+        
+        # Statistiques du document créé
+        output_path = Path(output_file)
+        file_size = output_path.stat().st_size if output_path.exists() else 0
+        
+        return {
+            "status": "success",
+            "input_file": markdown_file,
+            "output_file": output_file,
+            "file_size_bytes": file_size,
+            "format_settings": {
+                "font": f"{font_name} {font_size}pt",
+                "margins": f"{margin_cm} cm",
+                "line_spacing": f"{line_spacing}",
+                "language": language,
+                "page_numbers": add_page_numbers,
+                "decimal_numbering": decimal_numbering,
+                "title": title,
+                "author": author
+            },
+            "message": f"Document DOCX créé avec succès : {output_file}"
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Erreur lors de la conversion: {str(e)}"
+        }
+
+
+def _setup_academic_document(doc: Document, font_name: str, font_size: int, margin_cm: float, line_spacing: float, language: str, add_page_numbers: bool):
+    """Configure le document selon les normes académiques"""
+    # Configuration des sections et marges (2.5cm minimum)
+    section = doc.sections[0]
+    section.top_margin = Cm(margin_cm)
+    section.bottom_margin = Cm(margin_cm)
+    section.left_margin = Cm(margin_cm)
+    section.right_margin = Cm(margin_cm)
+    
+    # Taille du papier A4
+    section.page_width = Cm(21)
+    section.page_height = Cm(29.7)
+    
+    # Ajout de la numérotation des pages si demandé
+    if add_page_numbers:
+        _add_page_numbers(doc, section)
+    
+    # Configuration des styles
+    _setup_academic_styles(doc, font_name, font_size, line_spacing, language)
+
+
+def _add_page_numbers(doc: Document, section):
+    """Ajoute la numérotation des pages"""
+    try:
+        # Créer le footer
+        footer = section.footer
+        footer_para = footer.paragraphs[0]
+        footer_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        
+        # Ajouter le numéro de page
+        run = footer_para.runs[0] if footer_para.runs else footer_para.add_run()
+        
+        # Code XML pour insérer le numéro de page
+        fldChar1 = OxmlElement('w:fldChar')
+        fldChar1.set(qn('w:fldCharType'), 'begin')
+        
+        instrText = OxmlElement('w:instrText')
+        instrText.text = "PAGE"
+        
+        fldChar2 = OxmlElement('w:fldChar')
+        fldChar2.set(qn('w:fldCharType'), 'end')
+        
+        run._r.append(fldChar1)
+        run._r.append(instrText)
+        run._r.append(fldChar2)
+        
+    except Exception:
+        pass  # Si l'ajout automatique échoue, continuer sans numérotation
+
+
+def _setup_academic_styles(doc: Document, font_name: str, font_size: int, line_spacing: float, language: str):
+    """Configure les styles selon les normes académiques"""
+    styles = doc.styles
+    
+    # Style normal avec interligne 1.5
+    normal_style = styles['Normal']
+    normal_font = normal_style.font
+    normal_font.name = font_name
+    normal_font.size = Pt(font_size)
+    
+    # Configuration de l'interligne
+    normal_paragraph_format = normal_style.paragraph_format
+    normal_paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
+    normal_paragraph_format.line_spacing = line_spacing
+    normal_paragraph_format.space_after = Pt(6)
+    
+    # Styles pour les titres avec numérotation
+    heading_sizes = [18, 16, 14, 13, 12, 12]  # Tailles décroissantes pour H1-H6
+    
+    for i in range(1, 7):
+        try:
+            heading_style = styles[f'Heading {i}']
+            heading_font = heading_style.font
+            heading_font.name = font_name
+            heading_font.size = Pt(heading_sizes[i-1])
+            heading_font.bold = True
+            
+            # Espacement des titres
+            heading_format = heading_style.paragraph_format
+            heading_format.space_before = Pt(12)
+            heading_format.space_after = Pt(6)
+            heading_format.keep_with_next = True
+        except KeyError:
+            pass
+
+
+def _convert_markdown_content(doc: Document, content: str, font_name: str, font_size: int, line_spacing: float, decimal_numbering: bool):
+    """Convertit le contenu markdown avec gestion de la numérotation décimale"""
+    lines = content.split('\n')
+    heading_counters = [0, 0, 0, 0, 0, 0]  # Compteurs pour H1-H6
+    in_code_block = False
+    code_block_content = []
+    
+    for line in lines:
+        line_stripped = line.strip()
+        
+        # Gestion des blocs de code
+        if line_stripped.startswith('```'):
+            if in_code_block:
+                _add_academic_code_block(doc, '\n'.join(code_block_content))
+                code_block_content = []
+                in_code_block = False
+            else:
+                in_code_block = True
+            continue
+        
+        if in_code_block:
+            code_block_content.append(line)
+            continue
+        
+        # Gestion des titres avec numérotation décimale
+        if line_stripped.startswith('#'):
+            level = len(line_stripped) - len(line_stripped.lstrip('#'))
+            title_text = line_stripped.lstrip('# ').strip()
+            
+            if decimal_numbering:
+                title_text = _add_decimal_numbering(title_text, level, heading_counters)
+            
+            _add_academic_heading(doc, title_text, level)
+        
+        # Listes
+        elif line_stripped.startswith(('- ', '* ', '+ ')):
+            item_text = line_stripped[2:].strip()
+            _add_academic_list_item(doc, item_text, font_name, font_size)
+        
+        elif line_stripped.startswith(('1. ', '2. ', '3. ', '4. ', '5. ', '6. ', '7. ', '8. ', '9. ')):
+            item_text = line_stripped.split('. ', 1)[1] if '. ' in line_stripped else line_stripped
+            _add_academic_numbered_list_item(doc, item_text, font_name, font_size)
+        
+        # Paragraphes normaux
+        elif line_stripped:
+            _add_academic_paragraph(doc, line_stripped, font_name, font_size, line_spacing)
+        
+        # Lignes vides
+        else:
+            doc.add_paragraph()
+
+
+def _add_decimal_numbering(title: str, level: int, counters: List[int]) -> str:
+    """Ajoute la numérotation décimale aux titres"""
+    # Incrémenter le compteur du niveau actuel
+    counters[level - 1] += 1
+    
+    # Remettre à zéro les compteurs des niveaux inférieurs
+    for i in range(level, 6):
+        counters[i] = 0
+    
+    # Construire le numéro décimal
+    number_parts = []
+    for i in range(level):
+        if counters[i] > 0:
+            number_parts.append(str(counters[i]))
+    
+    if number_parts:
+        decimal_number = '.'.join(number_parts)
+        return f"{decimal_number}. {title}"
+    
+    return title
+
+
+def _add_academic_heading(doc: Document, text: str, level: int):
+    """Ajoute un titre avec formatage académique"""
+    level = min(max(level, 1), 6)
+    heading = doc.add_heading(text, level=level)
+    heading.alignment = WD_ALIGN_PARAGRAPH.LEFT
+
+
+def _add_academic_paragraph(doc: Document, text: str, font_name: str, font_size: int, line_spacing: float):
+    """Ajoute un paragraphe avec formatage académique"""
+    text = _process_inline_markdown(text)
+    
+    paragraph = doc.add_paragraph()
+    run = paragraph.add_run(text)
+    run.font.name = font_name
+    run.font.size = Pt(font_size)
+    
+    # Interligne et espacement
+    paragraph_format = paragraph.paragraph_format
+    paragraph_format.line_spacing_rule = WD_LINE_SPACING.MULTIPLE
+    paragraph_format.line_spacing = line_spacing
+    paragraph_format.space_after = Pt(6)
+    paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+
+
+def _add_academic_list_item(doc: Document, text: str, font_name: str, font_size: int):
+    """Ajoute un élément de liste à puces avec formatage académique"""
+    text = _process_inline_markdown(text)
+    paragraph = doc.add_paragraph(text, style='List Bullet')
+    
+    # Appliquer le formatage
+    for run in paragraph.runs:
+        run.font.name = font_name
+        run.font.size = Pt(font_size)
+
+
+def _add_academic_numbered_list_item(doc: Document, text: str, font_name: str, font_size: int):
+    """Ajoute un élément de liste numérotée avec formatage académique"""
+    text = _process_inline_markdown(text)
+    paragraph = doc.add_paragraph(text, style='List Number')
+    
+    # Appliquer le formatage
+    for run in paragraph.runs:
+        run.font.name = font_name
+        run.font.size = Pt(font_size)
+
+
+def _add_academic_code_block(doc: Document, code: str):
+    """Ajoute un bloc de code avec formatage académique"""
+    paragraph = doc.add_paragraph()
+    run = paragraph.add_run(code)
+    run.font.name = 'Courier New'  # Police monospace standard
+    run.font.size = Pt(10)
+    
+    # Style pour le code avec bordure
+    paragraph_format = paragraph.paragraph_format
+    paragraph_format.left_indent = Cm(1)
+    paragraph_format.space_before = Pt(6)
+    paragraph_format.space_after = Pt(6)
+
+
+def _process_inline_markdown(text: str) -> str:
+    """Traite le markdown inline basique"""
+    # Note: Pour respecter les normes académiques, on garde le formatage simple
+    text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)  # Gras -> texte normal
+    text = re.sub(r'\*(.*?)\*', r'\1', text)      # Italique -> texte normal  
+    text = re.sub(r'`(.*?)`', r'\1', text)        # Code inline -> texte normal
+    return text
